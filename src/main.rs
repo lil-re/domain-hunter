@@ -24,14 +24,15 @@ struct Args {
     favorites: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
 
     if args.search.len() > 0 {
-        search_domain_names(args.search)
+        search_domain_names(args.search).await;
     } else if args.extensions {
-        handle_extensions()
+        handle_extensions();
     } else if args.favorites {
-        handle_favorites()
+        handle_favorites();
     }
 }
