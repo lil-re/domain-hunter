@@ -1,6 +1,7 @@
 use reqwest::Url;
 use regex::Regex;
 use serde::{Deserialize};
+use crate::search_ui::display_search_result;
 
 #[derive(Deserialize, Debug)]
 struct DomainStatus {
@@ -17,6 +18,7 @@ pub async fn search_domain_names(domain: String) {
   let url: Url = get_url(domain, extensions);
   let response: String = get_domains(url).await;
   let data: Vec<DomainStatus> = parse_response(response);
+  display_search_result().expect("TODO: panic message");
 
   // TODO => Draw table with Ratatui to display data
 }

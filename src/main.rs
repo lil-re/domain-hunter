@@ -1,10 +1,11 @@
 mod search;
 mod extensions;
-mod favorites;
+mod wishlist;
+mod search_ui;
 
 use clap::Parser;
 use crate::extensions::handle_extensions;
-use crate::favorites::handle_favorites;
+use crate::wishlist::handle_wishlist;
 use crate::search::search_domain_names;
 
 /// Simple program to greet a person
@@ -21,7 +22,7 @@ struct Args {
 
     /// Manage favorite domains
     #[arg(short, long, default_value_t = false)]
-    favorites: bool,
+    wishlist: bool,
 }
 
 #[tokio::main]
@@ -32,7 +33,7 @@ async fn main() {
         search_domain_names(args.search).await;
     } else if args.extensions {
         handle_extensions();
-    } else if args.favorites {
-        handle_favorites();
+    } else if args.wishlist {
+        handle_wishlist();
     }
 }
