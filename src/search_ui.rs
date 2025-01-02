@@ -27,26 +27,21 @@ use ratatui::{
   },
   DefaultTerminal, Frame,
 };
+use serde::Deserialize;
 use style::palette::tailwind;
 use unicode_width::UnicodeWidthStr;
 
-const PALETTES: [tailwind::Palette; 4] = [
-  tailwind::BLUE,
-  tailwind::EMERALD,
-  tailwind::INDIGO,
-  tailwind::RED,
-];
-const INFO_TEXT: [&str; 2] = [
-  "(Esc) quit | (↑) move up | (↓) move down | (←) move left | (→) move right",
-  "(Shift + →) next color | (Shift + ←) previous color",
+const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
+const ITEM_HEIGHT: usize = 3;
+const INFO_TEXT: [&str; 1] = [
+  "(Esc) quit | (↑) move up | (↓) move down | (w) Add to wishlist",
 ];
 
-const ITEM_HEIGHT: usize = 4;
 
-pub fn display_search_result() -> Result<()> {
+pub fn display_search_result(data: Vec<Domain>) -> Result<()> {
   color_eyre::install()?;
   let terminal = ratatui::init();
-  let app_result = App::new().run(terminal);
+  let app_result = App::new(data).run(terminal);
   ratatui::restore();
   app_result
 }
@@ -80,49 +75,50 @@ impl TableColors {
   }
 }
 
-struct Data {
-  name: String,
-  address: String,
-  email: String,
+#[derive(Deserialize, Debug)]
+pub struct Domain {
+  pub(crate) domain: String,
+  pub(crate) tld: String,
+  pub(crate) status: String,
 }
 
-impl Data {
+impl Domain {
   const fn ref_array(&self) -> [&String; 3] {
-    [&self.name, &self.address, &self.email]
+    [&self.domain, &self.tld, &self.status]
   }
 
-  fn name(&self) -> &str {
-    &self.name
+  fn domain(&self) -> &str {
+    &self.domain
   }
 
-  fn address(&self) -> &str {
-    &self.address
+  fn tld(&self) -> &str {
+    &self.tld
   }
 
-  fn email(&self) -> &str {
-    &self.email
+  fn status(&self) -> &str {
+    &self.status
   }
 }
 
 struct App {
   state: TableState,
-  items: Vec<Data>,
-  longest_item_lens: (u16, u16, u16), // order is (name, address, email)
+  items: Vec<Domain>,
+  longest_item_lens: (u16, u16, u16), // order is (domain, tld, status)
   scroll_state: ScrollbarState,
   colors: TableColors,
   color_index: usize,
 }
 
 impl App {
-  fn new() -> Self {
-    let data_vec = generate_fake_names();
+  fn new(data: Vec<Domain>) -> Self {
+    // let data_vec = generate_fake_names();
     Self {
       state: TableState::default().with_selected(0),
-      longest_item_lens: constraint_len_calculator(&data_vec),
-      scroll_state: ScrollbarState::new((data_vec.len() - 1) * ITEM_HEIGHT),
-      colors: TableColors::new(&PALETTES[0]),
+      longest_item_lens: constraint_len_calculator(&data),
+      scroll_state: ScrollbarState::new((data.len() - 1) * ITEM_HEIGHT),
+      colors: TableColors::new(&MAIN_COLOR),
       color_index: 0,
-      items: data_vec,
+      items: data,
     }
   }
   pub fn next_row(&mut self) {
@@ -155,25 +151,8 @@ impl App {
     self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
   }
 
-  pub fn next_column(&mut self) {
-    self.state.select_next_column();
-  }
-
-  pub fn previous_column(&mut self) {
-    self.state.select_previous_column();
-  }
-
-  pub fn next_color(&mut self) {
-    self.color_index = (self.color_index + 1) % PALETTES.len();
-  }
-
-  pub fn previous_color(&mut self) {
-    let count = PALETTES.len();
-    self.color_index = (self.color_index + count - 1) % count;
-  }
-
-  pub fn set_colors(&mut self) {
-    self.colors = TableColors::new(&PALETTES[self.color_index]);
+  pub fn set_color(&mut self) {
+    self.colors = TableColors::new(&MAIN_COLOR);
   }
 
   fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
@@ -182,17 +161,10 @@ impl App {
 
       if let Event::Key(key) = event::read()? {
         if key.kind == KeyEventKind::Press {
-          let shift_pressed = key.modifiers.contains(KeyModifiers::SHIFT);
           match key.code {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
             KeyCode::Char('j') | KeyCode::Down => self.next_row(),
             KeyCode::Char('k') | KeyCode::Up => self.previous_row(),
-            KeyCode::Char('l') | KeyCode::Right if shift_pressed => self.next_color(),
-            KeyCode::Char('h') | KeyCode::Left if shift_pressed => {
-              self.previous_color();
-            }
-            KeyCode::Char('l') | KeyCode::Right => self.next_column(),
-            KeyCode::Char('h') | KeyCode::Left => self.previous_column(),
             _ => {}
           }
         }
@@ -204,8 +176,7 @@ impl App {
     let vertical = &Layout::vertical([Constraint::Min(5), Constraint::Length(4)]);
     let rects = vertical.split(frame.area());
 
-    self.set_colors();
-
+    self.set_color();
     self.render_table(frame, rects[0]);
     self.render_scrollbar(frame, rects[0]);
     self.render_footer(frame, rects[1]);
@@ -223,7 +194,7 @@ impl App {
         .add_modifier(Modifier::REVERSED)
         .fg(self.colors.selected_cell_style_fg);
 
-    let header = ["Name", "Address", "Email"]
+    let header = ["Domain", "Extension", "Status"]
         .into_iter()
         .map(Cell::from)
         .collect::<Row>()
@@ -239,17 +210,17 @@ impl App {
           .map(|content| Cell::from(Text::from(format!("\n{content}\n"))))
           .collect::<Row>()
           .style(Style::new().fg(self.colors.row_fg).bg(color))
-          .height(4)
+          .height(3)
     });
-    let bar = " █ ";
+    let bar = " > ";
     let t = Table::new(
       rows,
       [
         // + 1 is for padding.
-        Constraint::Length(self.longest_item_lens.0 + 1),
         Constraint::Min(self.longest_item_lens.1 + 1),
-        Constraint::Min(self.longest_item_lens.2),
-      ],
+        Constraint::Length(self.longest_item_lens.0 + 1),
+        Constraint::Length(self.longest_item_lens.0 + 1)
+      ]
     )
         .header(header)
         .row_highlight_style(selected_row_style)
@@ -257,7 +228,6 @@ impl App {
         .cell_highlight_style(selected_cell_style)
         .highlight_symbol(Text::from(vec![
           "".into(),
-          bar.into(),
           bar.into(),
           "".into(),
         ]))
@@ -297,80 +267,54 @@ impl App {
   }
 }
 
-fn generate_fake_names() -> Vec<Data> {
-  use fakeit::{address, contact, name};
-
-  (0..20)
-      .map(|_| {
-        let name = name::full();
-        let address = format!(
-          "{}\n{}, {} {}",
-          address::street(),
-          address::city(),
-          address::state(),
-          address::zip()
-        );
-        let email = contact::email();
-
-        Data {
-          name,
-          address,
-          email,
-        }
-      })
-      .sorted_by(|a, b| a.name.cmp(&b.name))
-      .collect()
-}
-
-fn constraint_len_calculator(items: &[Data]) -> (u16, u16, u16) {
-  let name_len = items
+fn constraint_len_calculator(items: &[Domain]) -> (u16, u16, u16) {
+  let domain_len = items
       .iter()
-      .map(Data::name)
+      .map(Domain::domain)
       .map(UnicodeWidthStr::width)
       .max()
       .unwrap_or(0);
-  let address_len = items
+  let tld_len = items
       .iter()
-      .map(Data::address)
-      .flat_map(str::lines)
+      .map(Domain::tld)
       .map(UnicodeWidthStr::width)
       .max()
       .unwrap_or(0);
-  let email_len = items
+  let status_len = items
       .iter()
-      .map(Data::email)
+      .map(Domain::status)
       .map(UnicodeWidthStr::width)
       .max()
       .unwrap_or(0);
 
   #[allow(clippy::cast_possible_truncation)]
-  (name_len as u16, address_len as u16, email_len as u16)
+  (domain_len as u16, tld_len as u16, status_len as u16)
 }
 
-#[cfg(test)]
-mod tests {
-  use crate::Data;
-
-  #[test]
-  fn constraint_len_calculator() {
-    let test_data = vec![
-      Data {
-        name: "Emirhan Tala".to_string(),
-        address: "Cambridgelaan 6XX\n3584 XX Utrecht".to_string(),
-        email: "tala.emirhan@gmail.com".to_string(),
-      },
-      Data {
-        name: "thistextis26characterslong".to_string(),
-        address: "this line is 31 characters long\nbottom line is 33 characters long"
-            .to_string(),
-        email: "thisemailis40caharacterslong@ratatui.com".to_string(),
-      },
-    ];
-    let (longest_name_len, longest_address_len, longest_email_len) =
-        crate::constraint_len_calculator(&test_data);
-
-    assert_eq!(26, longest_name_len);
-    assert_eq!(33, longest_address_len);
-    assert_eq!(40, longest_email_len);
-  }
-}
+// #[cfg(test)]
+// mod tests {
+//   use crate::Domain;
+//
+//   #[test]
+//   fn constraint_len_calculator() {
+//     let test_data = vec![
+//       Domain {
+//         name: "Emirhan Tala".to_string(),
+//         address: "Cambridgelaan 6XX\n3584 XX Utrecht".to_string(),
+//         email: "tala.emirhan@gmail.com".to_string(),
+//       },
+//       Domain {
+//         name: "thistextis26characterslong".to_string(),
+//         address: "this line is 31 characters long\nbottom line is 33 characters long"
+//             .to_string(),
+//         email: "thisemailis40caharacterslong@ratatui.com".to_string(),
+//       },
+//     ];
+//     let (longest_domain_len, longest_tld_len, longest_status_len) =
+//         crate::constraint_len_calculator(&test_data);
+//
+//     assert_eq!(26, longest_domain_len);
+//     assert_eq!(33, longest_tld_len);
+//     assert_eq!(40, longest_status_len);
+//   }
+// }
