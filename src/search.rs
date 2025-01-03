@@ -5,9 +5,9 @@ use crate::search_ui::{display_search_result, Domain};
 pub async fn search_domain_names(domain: String) {
   let extensions: String = get_extensions();
   let url: Url = get_url(domain, extensions);
-  let response: String = get_domains(url).await;
-  let data: Vec<Domain> = parse_response(response);
-  display_search_result(data).expect("An error occurred while displaying results");
+  let data: String = search_domains(url).await;
+  let domains: Vec<Domain> = parse_data(data);
+  display_search_result(domains).expect("An error occurred while displaying results");
 }
 
 pub fn get_extensions() -> String {
@@ -34,7 +34,7 @@ pub fn get_url(domain: String, extensions: String) -> Url {
   }
 }
 
-pub async fn get_domains(url: Url) -> String {
+pub async fn search_domains(url: Url) -> String {
   let response = match reqwest::get(url).await {
     Ok(response) => response,
     Err(error) => { panic!("{}", error) }
@@ -46,10 +46,10 @@ pub async fn get_domains(url: Url) -> String {
   }
 }
 
-pub fn parse_response(response: String) -> Vec<Domain> {
+pub fn parse_data(raw_data: String) -> Vec<Domain> {
   let re = Regex::new(r"}\{").unwrap();
-  let formatted = re.replace_all(&*response, "},{");
-  let json_data = format!("[{}]", formatted);
+  let formatted_data = re.replace_all(&*raw_data, "},{");
+  let json_data = format!("[{}]", formatted_data);
   let mut parsed_data: Vec<Domain> = serde_json::from_str(&*json_data).unwrap();
   parsed_data.sort_by(|a, b| a.tld.cmp(&b.tld));
   parsed_data
