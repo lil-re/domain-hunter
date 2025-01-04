@@ -3,6 +3,7 @@ mod extensions;
 mod wishlist;
 mod search_ui;
 mod extensions_ui;
+mod tables;
 
 use clap::Parser;
 use crate::extensions::handle_extensions;

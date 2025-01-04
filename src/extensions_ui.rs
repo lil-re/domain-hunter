@@ -14,8 +14,6 @@
 //! [examples readme]: https://github.com/ratatui/ratatui/blob/main/examples/README.md
 
 use color_eyre::Result;
-use crossterm::event::KeyModifiers;
-use itertools::Itertools;
 use ratatui::{
   crossterm::event::{self, Event, KeyCode, KeyEventKind},
   layout::{Constraint, Layout, Margin, Rect},
@@ -30,11 +28,12 @@ use ratatui::{
 use serde::Deserialize;
 use style::palette::tailwind;
 use unicode_width::UnicodeWidthStr;
+use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, set_table_footer, set_table_scrollbar, TableColors};
 
 const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
 const ITEM_HEIGHT: usize = 3;
 const INFO_TEXT: [&str; 1] = [
-  "(Esc) quit | (↑) move up | (↓) move down | (w) Add to wishlist",
+  "(Esc) quit | (↑) move up | (↓) move down | (a) Add to selected extensions",
 ];
 
 
@@ -44,35 +43,6 @@ pub fn display_extensions(data: Vec<Extension>) -> Result<()> {
   let app_result = App::new(data).run(terminal);
   ratatui::restore();
   app_result
-}
-struct TableColors {
-  buffer_bg: Color,
-  header_bg: Color,
-  header_fg: Color,
-  row_fg: Color,
-  selected_row_style_fg: Color,
-  selected_column_style_fg: Color,
-  selected_cell_style_fg: Color,
-  normal_row_color: Color,
-  alt_row_color: Color,
-  footer_border_color: Color,
-}
-
-impl TableColors {
-  const fn new(color: &tailwind::Palette) -> Self {
-    Self {
-      buffer_bg: tailwind::SLATE.c950,
-      header_bg: color.c900,
-      header_fg: tailwind::SLATE.c200,
-      row_fg: tailwind::SLATE.c200,
-      selected_row_style_fg: color.c400,
-      selected_column_style_fg: color.c400,
-      selected_cell_style_fg: color.c600,
-      normal_row_color: tailwind::SLATE.c950,
-      alt_row_color: tailwind::SLATE.c900,
-      footer_border_color: color.c400,
-    }
-  }
 }
 
 #[derive(Deserialize, Debug)]
@@ -102,6 +72,10 @@ impl Extension {
     } else {
       "Not selected"
     }
+  }
+
+  fn toggle_status(&mut self) {
+    self.selected = !self.selected;
   }
 }
 
@@ -156,6 +130,14 @@ impl App {
     self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
   }
 
+  pub fn update_row_status(&mut self) {
+    // if let Some(selected) = self.state.selected() {
+    //   let item = &mut items[selected];
+    //   item.toggle_status();
+    // }
+    println!("{:?}", self.state.selected());
+  }
+
   pub fn set_color(&mut self) {
     self.colors = TableColors::new(&MAIN_COLOR);
   }
@@ -170,6 +152,7 @@ impl App {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
             KeyCode::Char('j') | KeyCode::Down => self.next_row(),
             KeyCode::Char('k') | KeyCode::Up => self.previous_row(),
+            KeyCode::Char('a') => self.update_row_status(),
             _ => {}
           }
         }
@@ -188,87 +171,44 @@ impl App {
   }
 
   fn render_table(&mut self, frame: &mut Frame, area: Rect) {
-    let header_style = Style::default()
-        .fg(self.colors.header_fg)
-        .bg(self.colors.header_bg);
-    let selected_row_style = Style::default()
-        .add_modifier(Modifier::REVERSED)
-        .fg(self.colors.selected_row_style_fg);
-    let selected_col_style = Style::default().fg(self.colors.selected_column_style_fg);
-    let selected_cell_style = Style::default()
-        .add_modifier(Modifier::REVERSED)
-        .fg(self.colors.selected_cell_style_fg);
+    let header_labels = ["TLD", "Name", "Selected"];
+    let header_style = get_header_style(&self.colors);
+    let header = get_table_headers(header_labels, header_style);
 
-    let header = ["Extension", "Extension", "Status"]
-        .into_iter()
-        .map(Cell::from)
-        .collect::<Row>()
-        .style(header_style)
-        .height(1);
+    let selected_row_style = get_selected_row_style(&self.colors);
+
     let rows = self.items.iter().enumerate().map(|(i, data)| {
-      let color = match i % 2 {
-        0 => self.colors.normal_row_color,
-        _ => self.colors.alt_row_color,
-      };
-      let item = [&data.tld, &data.name, &data.selected.to_string()];
-      item.into_iter()
-          .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
-          .collect::<Row>()
-          .style(Style::new().fg(self.colors.row_fg).bg(color))
-          .height(3)
+      let row_values = [&data.tld, &data.name, data.selected()];
+      let row_style = get_row_style(i, &self.colors);
+      get_table_row(row_values, row_style)
     });
-    let bar = " > ";
-    let t = Table::new(
-      rows,
-      [
-        // + 1 is for padding.
-        Constraint::Length(self.longest_item_lens.0 + 1),
-        Constraint::Min(self.longest_item_lens.1 + 1),
-        Constraint::Length(self.longest_item_lens.0 + 1)
-      ]
-    )
+
+    let widths = vec![
+      Constraint::Length(self.longest_item_lens.0 + 1), // + 1 is for padding.
+      Constraint::Min(self.longest_item_lens.1 + 1),
+      Constraint::Min(self.longest_item_lens.0 + 1)
+    ];
+
+    let t = Table::new(rows, widths)
         .header(header)
         .row_highlight_style(selected_row_style)
-        .column_highlight_style(selected_col_style)
-        .cell_highlight_style(selected_cell_style)
         .highlight_symbol(Text::from(vec![
           "".into(),
-          bar.into(),
+          " > ".into(),
           "".into(),
         ]))
         .bg(self.colors.buffer_bg)
         .highlight_spacing(HighlightSpacing::Always);
+
     frame.render_stateful_widget(t, area, &mut self.state);
   }
 
   fn render_scrollbar(&mut self, frame: &mut Frame, area: Rect) {
-    frame.render_stateful_widget(
-      Scrollbar::default()
-          .orientation(ScrollbarOrientation::VerticalRight)
-          .begin_symbol(None)
-          .end_symbol(None),
-      area.inner(Margin {
-        vertical: 1,
-        horizontal: 1,
-      }),
-      &mut self.scroll_state,
-    );
+    set_table_scrollbar(&mut self.scroll_state, frame, area);
   }
 
   fn render_footer(&self, frame: &mut Frame, area: Rect) {
-    let info_footer = Paragraph::new(Text::from_iter(INFO_TEXT))
-        .style(
-          Style::new()
-              .fg(self.colors.row_fg)
-              .bg(self.colors.buffer_bg),
-        )
-        .centered()
-        .block(
-          Block::bordered()
-              .border_type(BorderType::Double)
-              .border_style(Style::new().fg(self.colors.footer_border_color)),
-        );
-    frame.render_widget(info_footer, area);
+    set_table_footer(&self.colors, frame, area, INFO_TEXT);
   }
 }
 
