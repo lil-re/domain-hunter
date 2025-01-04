@@ -28,23 +28,10 @@ use ratatui::{
 use serde::Deserialize;
 use style::palette::tailwind;
 use unicode_width::UnicodeWidthStr;
-use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, set_table_footer, set_table_scrollbar, TableColors};
+use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
 
-const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
-const ITEM_HEIGHT: usize = 3;
-const INFO_TEXT: [&str; 1] = [
-  "(Esc) quit | (↑) move up | (↓) move down | (a) Add to selected extensions",
-];
-
-
-pub fn display_extensions(data: Vec<Extension>) -> Result<()> {
-  color_eyre::install()?;
-  let terminal = ratatui::init();
-  let app_result = App::new(data).run(terminal);
-  ratatui::restore();
-  app_result
-}
-
+/// Extension
+/// Represents a Top Level Domain (.com, .net, .org...)
 #[derive(Deserialize, Debug)]
 pub struct Extension {
   pub(crate) tld: String,
@@ -79,67 +66,19 @@ impl Extension {
   }
 }
 
-struct App {
-  state: TableState,
-  items: Vec<Extension>,
-  longest_item_lens: (u16, u16, u16), // order is (tld, name, selected)
-  scroll_state: ScrollbarState,
-  colors: TableColors,
-  color_index: usize,
+pub fn display_extensions(data: Vec<Extension>) -> Result<()> {
+  color_eyre::install()?;
+  let terminal = ratatui::init();
+  let app_result = BaseTable::new(data).run(terminal);
+  ratatui::restore();
+  app_result
 }
 
-impl App {
-  fn new(data: Vec<Extension>) -> Self {
-    // let data_vec = generate_fake_names();
-    Self {
-      state: TableState::default().with_selected(0),
-      longest_item_lens: constraint_len_calculator(&data),
-      scroll_state: ScrollbarState::new((data.len() - 1) * ITEM_HEIGHT),
-      colors: TableColors::new(&MAIN_COLOR),
-      color_index: 0,
-      items: data,
-    }
-  }
-  pub fn next_row(&mut self) {
-    let i = match self.state.selected() {
-      Some(i) => {
-        if i >= self.items.len() - 1 {
-          0
-        } else {
-          i + 1
-        }
-      }
-      None => 0,
-    };
-    self.state.select(Some(i));
-    self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
-  }
-
-  pub fn previous_row(&mut self) {
-    let i = match self.state.selected() {
-      Some(i) => {
-        if i == 0 {
-          self.items.len() - 1
-        } else {
-          i - 1
-        }
-      }
-      None => 0,
-    };
-    self.state.select(Some(i));
-    self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
-  }
-
+impl BaseTable<Extension> {
   pub fn update_row_status(&mut self) {
-    // if let Some(selected) = self.state.selected() {
-    //   let item = &mut items[selected];
-    //   item.toggle_status();
-    // }
-    println!("{:?}", self.state.selected());
-  }
-
-  pub fn set_color(&mut self) {
-    self.colors = TableColors::new(&MAIN_COLOR);
+    if let Some(selected) = self.state.selected() {
+      self.items[selected].toggle_status();
+    }
   }
 
   fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
@@ -184,9 +123,9 @@ impl App {
     });
 
     let widths = vec![
-      Constraint::Length(self.longest_item_lens.0 + 1), // + 1 is for padding.
-      Constraint::Min(self.longest_item_lens.1 + 1),
-      Constraint::Min(self.longest_item_lens.0 + 1)
+      Constraint::Min(10),
+      Constraint::Min(20),
+      Constraint::Min(20)
     ];
 
     let t = Table::new(rows, widths)
@@ -202,64 +141,4 @@ impl App {
 
     frame.render_stateful_widget(t, area, &mut self.state);
   }
-
-  fn render_scrollbar(&mut self, frame: &mut Frame, area: Rect) {
-    set_table_scrollbar(&mut self.scroll_state, frame, area);
-  }
-
-  fn render_footer(&self, frame: &mut Frame, area: Rect) {
-    set_table_footer(&self.colors, frame, area, INFO_TEXT);
-  }
 }
-
-fn constraint_len_calculator(items: &[Extension]) -> (u16, u16, u16) {
-  let tld_len = items
-      .iter()
-      .map(Extension::tld)
-      .map(UnicodeWidthStr::width)
-      .max()
-      .unwrap_or(0);
-  let name_len = items
-      .iter()
-      .map(Extension::name)
-      .map(UnicodeWidthStr::width)
-      .max()
-      .unwrap_or(0);
-  let selected_len = items
-      .iter()
-      .map(Extension::selected)
-      .map(UnicodeWidthStr::width)
-      .max()
-      .unwrap_or(0);
-
-  #[allow(clippy::cast_possible_truncation)]
-  (tld_len as u16, name_len as u16, selected_len as u16)
-}
-
-// #[cfg(test)]
-// mod tests {
-//   use crate::Extension;
-//
-//   #[test]
-//   fn constraint_len_calculator() {
-//     let test_data = vec![
-//       Extension {
-//         name: "Emirhan Tala".to_string(),
-//         address: "Cambridgelaan 6XX\n3584 XX Utrecht".to_string(),
-//         email: "tala.emirhan@gmail.com".to_string(),
-//       },
-//       Extension {
-//         name: "thistextis26characterslong".to_string(),
-//         address: "this line is 31 characters long\nbottom line is 33 characters long"
-//             .to_string(),
-//         email: "thisemailis40caharacterslong@ratatui.com".to_string(),
-//       },
-//     ];
-//     let (longest_name_len, longest_tld_len, longest_selected_len) =
-//         crate::constraint_len_calculator(&test_data);
-//
-//     assert_eq!(33, longest_tld_len);
-//     assert_eq!(26, longest_name_len);
-//     assert_eq!(40, longest_selected_len);
-//   }
-// }

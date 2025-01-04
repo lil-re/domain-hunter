@@ -11,6 +11,14 @@ use ratatui::{
   DefaultTerminal, Frame,
 };
 use ratatui::style::palette::tailwind;
+use crate::extensions_ui::Extension;
+use crate::search_ui::Domain;
+
+const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
+const ITEM_HEIGHT: usize = 3;
+const INFO_TEXT: [&str; 1] = [
+  "(Esc) quit | (↑) move up | (↓) move down | (a) Add to selected extensions",
+];
 
 pub struct TableColors {
   pub(crate) buffer_bg: Color,
@@ -79,32 +87,98 @@ pub fn get_table_row(row_values: [&str; 3], row_style: (Color, Color)) -> Row {
       .height(3)
 }
 
-pub fn set_table_scrollbar(scroll_state: &mut ScrollbarState, frame: &mut Frame, area: Rect) {
-  frame.render_stateful_widget(
-    Scrollbar::default()
-        .orientation(ScrollbarOrientation::VerticalRight)
-        .begin_symbol(None)
-        .end_symbol(None),
-    area.inner(Margin {
-      vertical: 1,
-      horizontal: 1,
-    }),
-    scroll_state,
-  );
+pub trait TableBehavior {
+  fn next_row(&mut self);
+  fn previous_row(&mut self);
+  fn set_color(&mut self);
+  fn render_scrollbar(&mut self, frame: &mut Frame, area: Rect);
+  fn render_footer(&self, frame: &mut Frame, area: Rect);
 }
 
-pub fn set_table_footer(colors: &TableColors, frame: &mut Frame, area: Rect, text: [&str; 1]) {
-  let info_footer = Paragraph::new(Text::from_iter(text))
-      .style(
-        Style::new()
-            .fg(colors.row_fg)
-            .bg(colors.buffer_bg),
-      )
-      .centered()
-      .block(
-        Block::bordered()
-            .border_type(BorderType::Double)
-            .border_style(Style::new().fg(colors.footer_border_color)),
-      );
-  frame.render_widget(info_footer, area);
+// Common table state for both DomainTable and ExtensionTable
+pub struct BaseTable<T> {
+  pub(crate) state: TableState,
+  pub(crate) items: Vec<T>, // Generic item type
+  pub(crate) scroll_state: ScrollbarState,
+  pub(crate) colors: TableColors,
+  pub(crate) color_index: usize,
+}
+
+impl<T> BaseTable<T> {
+  // Create a new instance of the Table
+  pub fn new(items: Vec<T>) -> Self {
+    Self {
+      state: TableState::default().with_selected(0),
+      scroll_state: ScrollbarState::new((items.len() - 1) * ITEM_HEIGHT),
+      colors: TableColors::new(&MAIN_COLOR),
+      color_index: 0,
+      items,
+    }
+  }
+}
+
+impl<T> TableBehavior for BaseTable<T> {
+  fn next_row(&mut self) {
+    let i = match self.state.selected() {
+      Some(i) => {
+        if i >= self.items.len() - 1 {
+          0
+        } else {
+          i + 1
+        }
+      }
+      None => 0,
+    };
+    self.state.select(Some(i));
+    self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
+  }
+
+  fn previous_row(&mut self) {
+    let i = match self.state.selected() {
+      Some(i) => {
+        if i == 0 {
+          self.items.len() - 1
+        } else {
+          i - 1
+        }
+      }
+      None => 0,
+    };
+    self.state.select(Some(i));
+    self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
+  }
+
+  fn set_color(&mut self) {
+    self.colors = TableColors::new(&MAIN_COLOR);
+  }
+
+  fn render_scrollbar(&mut self, frame: &mut Frame, area: Rect) {
+    frame.render_stateful_widget(
+      Scrollbar::default()
+          .orientation(ScrollbarOrientation::VerticalRight)
+          .begin_symbol(None)
+          .end_symbol(None),
+      area.inner(Margin {
+        vertical: 1,
+        horizontal: 1,
+      }),
+      &mut self.scroll_state,
+    );
+  }
+
+  fn render_footer(&self, frame: &mut Frame, area: Rect) {
+    let info_footer = Paragraph::new(Text::from_iter(INFO_TEXT))
+        .style(
+          Style::new()
+              .fg(self.colors.row_fg)
+              .bg(self.colors.buffer_bg),
+        )
+        .centered()
+        .block(
+          Block::bordered()
+              .border_type(BorderType::Double)
+              .border_style(Style::new().fg(self.colors.footer_border_color)),
+        );
+    frame.render_widget(info_footer, area);
+  }
 }
