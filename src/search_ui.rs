@@ -14,12 +14,10 @@
 //! [examples readme]: https://github.com/ratatui/ratatui/blob/main/examples/README.md
 
 use color_eyre::Result;
-use crossterm::event::KeyModifiers;
-use itertools::Itertools;
 use ratatui::{
   crossterm::event::{self, Event, KeyCode, KeyEventKind},
   layout::{Constraint, Layout, Margin, Rect},
-  style::{self, Color, Modifier, Style, Stylize},
+  style::{self, Modifier, Style, Stylize},
   text::Text,
   widgets::{
     Block, BorderType, Cell, HighlightSpacing, Paragraph, Row, Scrollbar, ScrollbarOrientation,
@@ -28,65 +26,26 @@ use ratatui::{
   DefaultTerminal, Frame,
 };
 use serde::Deserialize;
-use style::palette::tailwind;
 use unicode_width::UnicodeWidthStr;
+use crate::extensions_ui::Extension;
+use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
 
-const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
-const ITEM_HEIGHT: usize = 3;
-const INFO_TEXT: [&str; 1] = [
-  "(Esc) quit | (↑) move up | (↓) move down | (w) Add to wishlist",
-];
-
-
-pub fn display_search_result(data: Vec<Domain>) -> Result<()> {
-  color_eyre::install()?;
-  let terminal = ratatui::init();
-  let app_result = App::new(data).run(terminal);
-  ratatui::restore();
-  app_result
-}
-struct TableColors {
-  buffer_bg: Color,
-  header_bg: Color,
-  header_fg: Color,
-  row_fg: Color,
-  selected_row_style_fg: Color,
-  selected_column_style_fg: Color,
-  selected_cell_style_fg: Color,
-  normal_row_color: Color,
-  alt_row_color: Color,
-  footer_border_color: Color,
-}
-
-impl TableColors {
-  const fn new(color: &tailwind::Palette) -> Self {
-    Self {
-      buffer_bg: tailwind::SLATE.c950,
-      header_bg: color.c900,
-      header_fg: tailwind::SLATE.c200,
-      row_fg: tailwind::SLATE.c200,
-      selected_row_style_fg: color.c400,
-      selected_column_style_fg: color.c400,
-      selected_cell_style_fg: color.c600,
-      normal_row_color: tailwind::SLATE.c950,
-      alt_row_color: tailwind::SLATE.c900,
-      footer_border_color: color.c400,
-    }
-  }
-}
-
+/// Domain
+/// Represents a Domain (example.com, example.net...)
 #[derive(Deserialize, Debug)]
 pub struct Domain {
   pub(crate) domain: String,
   pub(crate) tld: String,
   pub(crate) status: String,
+  #[serde(default = "default_selected")]
+  pub(crate) selected: bool
+}
+
+fn default_selected() -> bool {
+  false
 }
 
 impl Domain {
-  const fn ref_array(&self) -> [&String; 3] {
-    [&self.domain, &self.tld, &self.status]
-  }
-
   fn domain(&self) -> &str {
     &self.domain
   }
@@ -95,64 +54,40 @@ impl Domain {
     &self.tld
   }
 
-  fn status(&self) -> &str {
-    &self.status
-  }
-}
-
-struct App {
-  state: TableState,
-  items: Vec<Domain>,
-  longest_item_lens: (u16, u16, u16), // order is (domain, tld, status)
-  scroll_state: ScrollbarState,
-  colors: TableColors,
-  color_index: usize,
-}
-
-impl App {
-  fn new(data: Vec<Domain>) -> Self {
-    // let data_vec = generate_fake_names();
-    Self {
-      state: TableState::default().with_selected(0),
-      longest_item_lens: constraint_len_calculator(&data),
-      scroll_state: ScrollbarState::new((data.len() - 1) * ITEM_HEIGHT),
-      colors: TableColors::new(&MAIN_COLOR),
-      color_index: 0,
-      items: data,
+  fn available(&self) -> &str {
+    if self.status == "True" {
+      "Available"
+    } else {
+      "Not available"
     }
   }
-  pub fn next_row(&mut self) {
-    let i = match self.state.selected() {
-      Some(i) => {
-        if i >= self.items.len() - 1 {
-          0
-        } else {
-          i + 1
-        }
-      }
-      None => 0,
-    };
-    self.state.select(Some(i));
-    self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
+
+  fn selected(&self) -> &str {
+    if self.selected {
+      "Wishlisted"
+    } else {
+      "Not wishlisted"
+    }
   }
 
-  pub fn previous_row(&mut self) {
-    let i = match self.state.selected() {
-      Some(i) => {
-        if i == 0 {
-          self.items.len() - 1
-        } else {
-          i - 1
-        }
-      }
-      None => 0,
-    };
-    self.state.select(Some(i));
-    self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
+  fn toggle_status(&mut self) {
+    self.selected = !self.selected;
   }
+}
 
-  pub fn set_color(&mut self) {
-    self.colors = TableColors::new(&MAIN_COLOR);
+pub fn display_search_result(data: Vec<Domain>) -> Result<()> {
+  color_eyre::install()?;
+  let terminal = ratatui::init();
+  let app_result = BaseTable::new(data).run(terminal);
+  ratatui::restore();
+  app_result
+}
+
+impl BaseTable<Domain> {
+  pub fn update_row_status(&mut self) {
+    if let Some(status) = self.state.selected() {
+      self.items[status].toggle_status();
+    }
   }
 
   fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
@@ -165,6 +100,7 @@ impl App {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
             KeyCode::Char('j') | KeyCode::Down => self.next_row(),
             KeyCode::Char('k') | KeyCode::Up => self.previous_row(),
+            KeyCode::Char('a') => self.update_row_status(),
             _ => {}
           }
         }
@@ -183,138 +119,37 @@ impl App {
   }
 
   fn render_table(&mut self, frame: &mut Frame, area: Rect) {
-    let header_style = Style::default()
-        .fg(self.colors.header_fg)
-        .bg(self.colors.header_bg);
-    let selected_row_style = Style::default()
-        .add_modifier(Modifier::REVERSED)
-        .fg(self.colors.selected_row_style_fg);
-    let selected_col_style = Style::default().fg(self.colors.selected_column_style_fg);
-    let selected_cell_style = Style::default()
-        .add_modifier(Modifier::REVERSED)
-        .fg(self.colors.selected_cell_style_fg);
+    let header_labels = vec!["Domain", "Extension", "Status", "Wishlist"];
+    let header_style = get_header_style(&self.colors);
+    let header = get_table_headers(header_labels, header_style);
 
-    let header = ["Domain", "Extension", "Status"]
-        .into_iter()
-        .map(Cell::from)
-        .collect::<Row>()
-        .style(header_style)
-        .height(1);
+    let selected_row_style = get_selected_row_style(&self.colors);
+
     let rows = self.items.iter().enumerate().map(|(i, data)| {
-      let color = match i % 2 {
-        0 => self.colors.normal_row_color,
-        _ => self.colors.alt_row_color,
-      };
-      let item = data.ref_array();
-      item.into_iter()
-          .map(|content| Cell::from(Text::from(format!("\n{content}\n"))))
-          .collect::<Row>()
-          .style(Style::new().fg(self.colors.row_fg).bg(color))
-          .height(3)
+      let row_values = vec![&data.domain, &data.tld, data.available(), data.selected()];
+      let row_style = get_row_style(i, &self.colors);
+      get_table_row(row_values, row_style)
     });
+
+    let widths = vec![
+      Constraint::Min(10),
+      Constraint::Min(20),
+      Constraint::Min(20),
+      Constraint::Min(20),
+    ];
+
     let bar = " > ";
-    let t = Table::new(
-      rows,
-      [
-        // + 1 is for padding.
-        Constraint::Min(self.longest_item_lens.1 + 1),
-        Constraint::Length(self.longest_item_lens.0 + 1),
-        Constraint::Length(self.longest_item_lens.0 + 1)
-      ]
-    )
+    let t = Table::new(rows, widths)
         .header(header)
         .row_highlight_style(selected_row_style)
-        .column_highlight_style(selected_col_style)
-        .cell_highlight_style(selected_cell_style)
         .highlight_symbol(Text::from(vec![
           "".into(),
-          bar.into(),
+          " > ".into(),
           "".into(),
         ]))
         .bg(self.colors.buffer_bg)
         .highlight_spacing(HighlightSpacing::Always);
+
     frame.render_stateful_widget(t, area, &mut self.state);
   }
-
-  fn render_scrollbar(&mut self, frame: &mut Frame, area: Rect) {
-    frame.render_stateful_widget(
-      Scrollbar::default()
-          .orientation(ScrollbarOrientation::VerticalRight)
-          .begin_symbol(None)
-          .end_symbol(None),
-      area.inner(Margin {
-        vertical: 1,
-        horizontal: 1,
-      }),
-      &mut self.scroll_state,
-    );
-  }
-
-  fn render_footer(&self, frame: &mut Frame, area: Rect) {
-    let info_footer = Paragraph::new(Text::from_iter(INFO_TEXT))
-        .style(
-          Style::new()
-              .fg(self.colors.row_fg)
-              .bg(self.colors.buffer_bg),
-        )
-        .centered()
-        .block(
-          Block::bordered()
-              .border_type(BorderType::Double)
-              .border_style(Style::new().fg(self.colors.footer_border_color)),
-        );
-    frame.render_widget(info_footer, area);
-  }
 }
-
-fn constraint_len_calculator(items: &[Domain]) -> (u16, u16, u16) {
-  let domain_len = items
-      .iter()
-      .map(Domain::domain)
-      .map(UnicodeWidthStr::width)
-      .max()
-      .unwrap_or(0);
-  let tld_len = items
-      .iter()
-      .map(Domain::tld)
-      .map(UnicodeWidthStr::width)
-      .max()
-      .unwrap_or(0);
-  let status_len = items
-      .iter()
-      .map(Domain::status)
-      .map(UnicodeWidthStr::width)
-      .max()
-      .unwrap_or(0);
-
-  #[allow(clippy::cast_possible_truncation)]
-  (domain_len as u16, tld_len as u16, status_len as u16)
-}
-
-// #[cfg(test)]
-// mod tests {
-//   use crate::Domain;
-//
-//   #[test]
-//   fn constraint_len_calculator() {
-//     let test_data = vec![
-//       Domain {
-//         name: "Emirhan Tala".to_string(),
-//         address: "Cambridgelaan 6XX\n3584 XX Utrecht".to_string(),
-//         email: "tala.emirhan@gmail.com".to_string(),
-//       },
-//       Domain {
-//         name: "thistextis26characterslong".to_string(),
-//         address: "this line is 31 characters long\nbottom line is 33 characters long"
-//             .to_string(),
-//         email: "thisemailis40caharacterslong@ratatui.com".to_string(),
-//       },
-//     ];
-//     let (longest_domain_len, longest_tld_len, longest_status_len) =
-//         crate::constraint_len_calculator(&test_data);
-//
-//     assert_eq!(26, longest_domain_len);
-//     assert_eq!(33, longest_tld_len);
-//     assert_eq!(40, longest_status_len);
-//   }
-// }

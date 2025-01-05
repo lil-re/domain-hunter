@@ -56,7 +56,7 @@ pub fn get_header_style(colors: &TableColors) -> Style {
       .bg(colors.header_bg)
 }
 
-pub fn get_table_headers(labels: [&str; 3], header_style: Style) -> Row {
+pub fn get_table_headers(labels: Vec<&str>, header_style: Style) -> Row {
   labels.into_iter()
       .map(Cell::from)
       .collect::<Row>()
@@ -79,7 +79,7 @@ pub fn get_row_style(index: usize, colors: &TableColors) -> (Color, Color) {
   (fg, bg)
 }
 
-pub fn get_table_row(row_values: [&str; 3], row_style: (Color, Color)) -> Row {
+pub fn get_table_row(row_values: Vec<&str>, row_style: (Color, Color)) -> Row {
   row_values.into_iter()
       .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
       .collect::<Row>()

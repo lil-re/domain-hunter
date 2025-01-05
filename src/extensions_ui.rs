@@ -16,18 +16,16 @@
 use color_eyre::Result;
 use ratatui::{
   crossterm::event::{self, Event, KeyCode, KeyEventKind},
-  layout::{Constraint, Layout, Margin, Rect},
-  style::{self, Color, Modifier, Style, Stylize},
+  layout::{Constraint, Layout, Rect},
+  style::{Stylize},
   text::Text,
   widgets::{
-    Block, BorderType, Cell, HighlightSpacing, Paragraph, Row, Scrollbar, ScrollbarOrientation,
-    ScrollbarState, Table, TableState,
+    HighlightSpacing,
+    Table,
   },
   DefaultTerminal, Frame,
 };
 use serde::Deserialize;
-use style::palette::tailwind;
-use unicode_width::UnicodeWidthStr;
 use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
 
 /// Extension
@@ -110,14 +108,14 @@ impl BaseTable<Extension> {
   }
 
   fn render_table(&mut self, frame: &mut Frame, area: Rect) {
-    let header_labels = ["TLD", "Name", "Selected"];
+    let header_labels = vec!["TLD", "Name", "Selected"];
     let header_style = get_header_style(&self.colors);
     let header = get_table_headers(header_labels, header_style);
 
     let selected_row_style = get_selected_row_style(&self.colors);
 
     let rows = self.items.iter().enumerate().map(|(i, data)| {
-      let row_values = [&data.tld, &data.name, data.selected()];
+      let row_values = vec![&data.tld, &data.name, data.selected()];
       let row_style = get_row_style(i, &self.colors);
       get_table_row(row_values, row_style)
     });
