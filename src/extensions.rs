@@ -1,7 +1,8 @@
-use crate::extensions_ui::{display_extensions, Extension};
 use serde_json;
 use std::fs::File;
 use std::io::Read;
+use crate::extensions_table::display_extensions;
+use crate::models::Extension;
 
 pub fn handle_extensions() {
   println!("Handle domain extensions");

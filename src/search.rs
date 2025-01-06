@@ -1,13 +1,14 @@
 use reqwest::Url;
 use regex::Regex;
-use crate::search_ui::{display_search_result, Domain};
+use crate::domains_table::display_domains;
+use crate::models::Domain;
 
 pub async fn search_domain_names(domain: String) {
   let extensions: String = get_extensions();
   let url: Url = get_url(domain, extensions);
   let data: String = search_domains(url).await;
   let domains: Vec<Domain> = parse_data(data);
-  display_search_result(domains).expect("An error occurred while displaying results");
+  display_domains(domains).expect("An error occurred while displaying results");
 }
 
 pub fn get_extensions() -> String {

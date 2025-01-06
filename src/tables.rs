@@ -1,18 +1,13 @@
-use std::iter::Map;
 use ratatui::{
-  crossterm::event::{self, Event, KeyCode, KeyEventKind},
-  layout::{Constraint, Layout, Margin, Rect},
-  style::{self, Color, Modifier, Style, Stylize},
+  layout::{Margin, Rect},
+  style::{Color, Modifier, Style},
   text::Text,
   widgets::{
-    Block, BorderType, Cell, HighlightSpacing, Paragraph, Row, Scrollbar, ScrollbarOrientation,
-    ScrollbarState, Table, TableState,
-  },
-  DefaultTerminal, Frame,
+    Block, BorderType, Cell, Paragraph, Row, Scrollbar, ScrollbarOrientation,
+    ScrollbarState, TableState,
+  }, Frame,
 };
 use ratatui::style::palette::tailwind;
-use crate::extensions_ui::Extension;
-use crate::search_ui::Domain;
 
 const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
 const ITEM_HEIGHT: usize = 3;
@@ -26,8 +21,6 @@ pub struct TableColors {
   pub(crate) header_fg: Color,
   pub(crate) row_fg: Color,
   pub(crate) selected_row_style_fg: Color,
-  pub(crate) selected_column_style_fg: Color,
-  pub(crate) selected_cell_style_fg: Color,
   pub(crate) normal_row_color: Color,
   pub(crate) alt_row_color: Color,
   pub(crate) footer_border_color: Color,
@@ -41,8 +34,6 @@ impl TableColors {
       header_fg: tailwind::SLATE.c200,
       row_fg: tailwind::SLATE.c200,
       selected_row_style_fg: color.c400,
-      selected_column_style_fg: color.c400,
-      selected_cell_style_fg: color.c600,
       normal_row_color: tailwind::SLATE.c950,
       alt_row_color: tailwind::SLATE.c900,
       footer_border_color: color.c400,
@@ -101,7 +92,6 @@ pub struct BaseTable<T> {
   pub(crate) items: Vec<T>, // Generic item type
   pub(crate) scroll_state: ScrollbarState,
   pub(crate) colors: TableColors,
-  pub(crate) color_index: usize,
 }
 
 impl<T> BaseTable<T> {
@@ -111,7 +101,6 @@ impl<T> BaseTable<T> {
       state: TableState::default().with_selected(0),
       scroll_state: ScrollbarState::new((items.len() - 1) * ITEM_HEIGHT),
       colors: TableColors::new(&MAIN_COLOR),
-      color_index: 0,
       items,
     }
   }

@@ -1,9 +1,10 @@
 mod search;
 mod extensions;
 mod wishlist;
-mod search_ui;
-mod extensions_ui;
+mod domains_table;
+mod extensions_table;
 mod tables;
+mod models;
 
 use clap::Parser;
 use crate::extensions::handle_extensions;
