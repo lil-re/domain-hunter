@@ -1,15 +1,16 @@
-mod search;
-mod extensions;
-mod wishlist;
+mod search_command;
+mod extensions_command;
+mod wishlist_command;
 mod domains_table;
 mod extensions_table;
 mod tables;
 mod models;
+mod wishlist_file;
 
 use clap::Parser;
-use crate::extensions::handle_extensions;
-use crate::wishlist::handle_wishlist;
-use crate::search::search_domain_names;
+use crate::extensions_command::handle_extensions;
+use crate::wishlist_command::handle_wishlist;
+use crate::search_command::search_domain_names;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
