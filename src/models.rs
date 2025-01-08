@@ -3,7 +3,7 @@ use serde::{Serialize,Deserialize};
 /// Selectable
 ///
 pub trait Selectable {
-  fn selected(&self) -> &str;
+  fn is_selected(&self) -> &str;
   fn toggle_status(&mut self);
 }
 
@@ -21,18 +21,8 @@ pub struct Extension {
   pub(crate) selected: bool
 }
 
-impl Extension {
-  fn tld(&self) -> &str {
-    &self.tld
-  }
-
-  fn name(&self) -> &str {
-    &self.name
-  }
-}
-
 impl Selectable for Extension {
-  fn selected(&self) -> &str {
+  fn is_selected(&self) -> &str {
     if self.selected {
       "Selected"
     } else {
@@ -57,15 +47,7 @@ pub struct Domain {
 }
 
 impl Domain {
-  fn domain(&self) -> &str {
-    &self.domain
-  }
-
-  fn tld(&self) -> &str {
-    &self.tld
-  }
-
-  pub(crate) fn available(&self) -> &str {
+  pub(crate) fn is_available(&self) -> &str {
     if self.status == "True" {
       "Available"
     } else {
@@ -79,7 +61,7 @@ impl Domain {
 }
 
 impl Selectable for Domain {
-  fn selected(&self) -> &str {
+  fn is_selected(&self) -> &str {
     if self.selected {
       "Wishlisted"
     } else {

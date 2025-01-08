@@ -79,7 +79,7 @@ impl BaseTable<Extension> {
     let selected_row_style = get_selected_row_style(&self.colors);
 
     let rows = self.items.iter().enumerate().map(|(i, data)| {
-      let row_values = vec![&data.tld, &data.name, data.selected()];
+      let row_values = vec![&data.tld, &data.name, data.is_selected()];
       let row_style = get_row_style(i, &self.colors);
       get_table_row(row_values, row_style)
     });

@@ -6,6 +6,7 @@ mod extensions_table;
 mod tables;
 mod models;
 mod wishlist_file;
+mod extensions_file;
 
 use clap::Parser;
 use crate::extensions_command::handle_extensions;

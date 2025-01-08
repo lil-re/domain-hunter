@@ -2,12 +2,15 @@ use reqwest::Url;
 use regex::Regex;
 use crate::domains_table::display_domains;
 use crate::models::Domain;
+use crate::wishlist_file::get_wishlist;
 
 pub async fn search_domain_names(domain: String) {
   let extensions: String = get_extensions();
   let url: Url = get_url(domain, extensions);
   let data: String = search_domains(url).await;
-  let domains: Vec<Domain> = parse_data(data);
+  let mut domains: Vec<Domain> = parse_data(data);
+  let wishlist : Vec<Domain> = get_wishlist();
+  set_wishlisted_domain(&mut domains, wishlist);
   display_domains(domains).expect("An error occurred while displaying results");
 }
 
@@ -54,4 +57,14 @@ pub fn parse_data(raw_data: String) -> Vec<Domain> {
   let mut parsed_data: Vec<Domain> = serde_json::from_str(&*json_data).unwrap();
   parsed_data.sort_by(|a, b| a.tld.cmp(&b.tld));
   parsed_data
+}
+
+pub fn set_wishlisted_domain(result: &mut Vec<Domain>, wishlist: Vec<Domain>) {
+  let wishlisted_domain_names: Vec<String> = wishlist.iter().map(|d| d.domain_name()).collect();
+
+  for domain in result {
+    if wishlisted_domain_names.contains(&domain.domain_name()) {
+      domain.selected = true
+    }
+  }
 }
