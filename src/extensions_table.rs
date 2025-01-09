@@ -25,6 +25,7 @@ use ratatui::{
   },
   DefaultTerminal, Frame,
 };
+use crate::extensions_file::save_extensions;
 use crate::models::{Extension, Selectable};
 use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
 
@@ -40,6 +41,7 @@ impl BaseTable<Extension> {
   pub fn update_row_status(&mut self) {
     if let Some(selected) = self.state.selected() {
       self.items[selected].toggle_status();
+      save_extensions(&self.items)
     }
   }
 
