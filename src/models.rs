@@ -1,7 +1,6 @@
 use serde::{Serialize,Deserialize};
 
 /// Selectable
-///
 pub trait Selectable {
   fn is_selected(&self) -> &str;
   fn toggle_status(&mut self);
@@ -55,6 +54,7 @@ impl Domain {
     }
   }
 
+  /// Complete domain domain name (e.g. "example.com")
   pub(crate) fn domain_name(&self) -> String {
     format!("{}.{}", self.domain, self.tld).to_string()
   }

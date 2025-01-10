@@ -19,10 +19,7 @@ use ratatui::{
   layout::{Constraint, Layout, Rect},
   style::{Stylize},
   text::Text,
-  widgets::{
-    HighlightSpacing,
-    Table,
-  },
+  widgets::{HighlightSpacing, Table},
   DefaultTerminal, Frame,
 };
 use crate::extensions_file::save_extensions;

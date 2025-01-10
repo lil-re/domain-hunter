@@ -1,11 +1,12 @@
 use reqwest::Url;
 use regex::Regex;
 use crate::domains_table::display_domains;
-use crate::models::Domain;
+use crate::extensions_file::get_extensions;
+use crate::models::{Domain, Extension};
 use crate::wishlist_file::get_wishlist;
 
 pub async fn search_domain_names(domain: String) {
-  let extensions: String = get_extensions();
+  let extensions: String = get_selected_extensions();
   let url: Url = get_url(domain, extensions);
   let data: String = search_domains(url).await;
   let mut domains: Vec<Domain> = parse_data(data);
@@ -14,17 +15,20 @@ pub async fn search_domain_names(domain: String) {
   display_domains(domains).expect("An error occurred while displaying results");
 }
 
-pub fn get_extensions() -> String {
-  let default_extensions: Vec<&str> = vec!["com", "net", "org", "co", "io", "ai"];
-  let formatted_extensions: String = default_extensions
+/// Retrieve the extensions selected by the user
+pub fn get_selected_extensions() -> String {
+  let default_extensions: Vec<Extension> = get_extensions();
+  let selected_extensions: String = default_extensions
       .iter()
-      .map(|&e| format!("\"{}\"", e))
+      .filter(|e| e.selected)
+      .map(|e| format!("\"{}\"", e.tld))
       .collect::<Vec<_>>()
       .join(",");
 
-  format!("[{}]", formatted_extensions)
+  format!("[{}]", selected_extensions)
 }
 
+/// Generate the URL to fetch domain names
 pub fn get_url(domain: String, extensions: String) -> Url {
   let url = "https://domaintyper.com/API/DomainCheckAsync";
   let params = [
@@ -38,6 +42,7 @@ pub fn get_url(domain: String, extensions: String) -> Url {
   }
 }
 
+/// Search for domain names
 pub async fn search_domains(url: Url) -> String {
   let response = match reqwest::get(url).await {
     Ok(response) => response,
@@ -50,6 +55,7 @@ pub async fn search_domains(url: Url) -> String {
   }
 }
 
+/// Parse search result and transform data into a vector of Domain
 pub fn parse_data(raw_data: String) -> Vec<Domain> {
   let re = Regex::new(r"}\{").unwrap();
   let formatted_data = re.replace_all(&*raw_data, "},{");
@@ -59,6 +65,7 @@ pub fn parse_data(raw_data: String) -> Vec<Domain> {
   parsed_data
 }
 
+/// Retrieve the list of wishlisted domains to check if the user has already added domains in the wishlist
 pub fn set_wishlisted_domain(result: &mut Vec<Domain>, wishlist: Vec<Domain>) {
   let wishlisted_domain_names: Vec<String> = wishlist.iter().map(|d| d.domain_name()).collect();
 

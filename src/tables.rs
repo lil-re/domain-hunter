@@ -9,12 +9,14 @@ use ratatui::{
 };
 use ratatui::style::palette::tailwind;
 
+/// Constants
 const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
 const ITEM_HEIGHT: usize = 3;
 const INFO_TEXT: [&str; 1] = [
   "(Esc) quit | (↑) move up | (↓) move down | (a) Add to selected extensions",
 ];
 
+/// Table colors
 pub struct TableColors {
   pub(crate) buffer_bg: Color,
   pub(crate) header_bg: Color,
@@ -41,6 +43,7 @@ impl TableColors {
   }
 }
 
+/// Helper functions to generate the table content
 pub fn get_header_style(colors: &TableColors) -> Style {
   Style::default()
       .fg(colors.header_fg)
@@ -78,6 +81,7 @@ pub fn get_table_row(row_values: Vec<&str>, row_style: (Color, Color)) -> Row {
       .height(3)
 }
 
+/// Table
 pub trait TableBehavior {
   fn next_row(&mut self);
   fn previous_row(&mut self);
@@ -86,16 +90,17 @@ pub trait TableBehavior {
   fn render_footer(&self, frame: &mut Frame, area: Rect);
 }
 
-// Common table state for both DomainTable and ExtensionTable
+/// BaseTable
+/// Common table state for both DomainTable and ExtensionTable
 pub struct BaseTable<T> {
   pub(crate) state: TableState,
-  pub(crate) items: Vec<T>, // Generic item type
+  pub(crate) items: Vec<T>, // List of domain or extension
   pub(crate) scroll_state: ScrollbarState,
   pub(crate) colors: TableColors,
 }
 
 impl<T> BaseTable<T> {
-  // Create a new instance of the Table
+  /// Create a new instance of the Table
   pub fn new(items: Vec<T>) -> Self {
     Self {
       state: TableState::default().with_selected(0),
