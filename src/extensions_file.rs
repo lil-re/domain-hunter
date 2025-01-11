@@ -1,19 +1,27 @@
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use crate::default_extensions::DEFAULT_EXTENSIONS;
 use crate::models::{Extension};
 
 pub fn get_extensions() -> Vec<Extension> {
   let mut contents = String::new();
-  let mut file = match File::open("extensions.json") {
-    Ok(result) => result,
-    Err(error) => { panic!("{}", error) }
+
+  // Try to open the extensions file
+  match File::open("extensions.json") {
+    Ok(mut file) => {
+      // If file exists, retrieve its content
+      match file.read_to_string(&mut contents) {
+        Ok(result) => result,
+        Err(error) =>  panic!("{}", error)
+      };
+    },
+    Err(_error) => {
+      // Otherwise, add a default extension list
+      contents = DEFAULT_EXTENSIONS.parse().unwrap()
+    }
   };
 
-  match file.read_to_string(&mut contents) {
-    Ok(result) => result,
-    Err(error) => { panic!("{}", error) }
-  };
-
+  // Transform content into a vector of Extension
   match serde_json::from_str(&contents) {
     Ok(result) => result,
     Err(error) => { panic!("{}", error) }

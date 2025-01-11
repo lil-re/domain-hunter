@@ -7,16 +7,23 @@ use crate::models::Domain;
 
 pub fn get_wishlist() -> Vec<Domain> {
   let mut contents = String::new();
-  let mut file = match File::open("wishlist.json") {
-    Ok(result) => result,
-    Err(error) => { panic!("{}", error) }
+
+  // TTry to open wishlist file
+  match File::open("wishlist.json") {
+    Ok(mut file) => {
+      // If file exists, retrieve its content
+      match file.read_to_string(&mut contents) {
+        Ok(result) => result,
+        Err(error) =>  panic!("{}", error)
+      };
+    },
+    Err(_error) => {
+      // Otherwise, add empty table as default content
+      contents = String::from("[]")
+    }
   };
 
-  match file.read_to_string(&mut contents) {
-    Ok(result) => result,
-    Err(error) => { panic!("{}", error) }
-  };
-
+  // Transform content into a vector of Domain
   match serde_json::from_str(&contents) {
     Ok(result) => result,
     Err(error) => { panic!("{}", error) }
