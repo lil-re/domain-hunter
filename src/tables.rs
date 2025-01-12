@@ -73,7 +73,7 @@ pub fn get_row_style(index: usize, colors: &TableColors) -> (Color, Color) {
   (fg, bg)
 }
 
-pub fn get_table_row(row_values: Vec<&str>, row_style: (Color, Color)) -> Row {
+pub fn get_table_row(row_values: Vec<String>, row_style: (Color, Color)) -> Row<'static> {
   row_values.into_iter()
       .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
       .collect::<Row>()
@@ -102,9 +102,15 @@ pub struct BaseTable<T> {
 impl<T> BaseTable<T> {
   /// Create a new instance of the Table
   pub fn new(items: Vec<T>) -> Self {
+    let items_length = if items.len() > 0 {
+      items.len() - 1
+    } else {
+      1
+    };
+
     Self {
       state: TableState::default().with_selected(0),
-      scroll_state: ScrollbarState::new((items.len() - 1) * ITEM_HEIGHT),
+      scroll_state: ScrollbarState::new(items_length * ITEM_HEIGHT),
       colors: TableColors::new(&MAIN_COLOR),
       items,
     }

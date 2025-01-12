@@ -1,18 +1,3 @@
-//! # [Ratatui] Table example
-//!
-//! The latest version of this example is available in the [examples] folder in the repository.
-//!
-//! Please note that the examples are designed to be run against the `main` branch of the Github
-//! repository. This means that you may not be able to compile with the latest release version on
-//! crates.io, or the one that you have installed locally.
-//!
-//! See the [examples readme] for more information on finding examples that match the version of the
-//! library you are using.
-//!
-//! [Ratatui]: https://github.com/ratatui/ratatui
-//! [examples]: https://github.com/ratatui/ratatui/blob/main/examples
-//! [examples readme]: https://github.com/ratatui/ratatui/blob/main/examples/README.md
-
 use color_eyre::Result;
 use ratatui::{
   crossterm::event::{self, Event, KeyCode, KeyEventKind},
@@ -35,6 +20,7 @@ pub fn display_extensions(data: Vec<Extension>) -> Result<()> {
 }
 
 impl BaseTable<Extension> {
+  /// Select or unselect an extension
   pub fn update_row_status(&mut self) {
     if let Some(selected) = self.state.selected() {
       self.items[selected].toggle_status();
@@ -78,7 +64,7 @@ impl BaseTable<Extension> {
     let selected_row_style = get_selected_row_style(&self.colors);
 
     let rows = self.items.iter().enumerate().map(|(i, data)| {
-      let row_values = vec![&data.tld, &data.name, data.is_selected()];
+      let row_values = vec![data.tld.clone(), data.name.clone(), data.is_selected()];
       let row_style = get_row_style(i, &self.colors);
       get_table_row(row_values, row_style)
     });

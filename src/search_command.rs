@@ -70,7 +70,7 @@ pub fn set_wishlisted_domain(result: &mut Vec<Domain>, wishlist: Vec<Domain>) {
   let wishlisted_domain_names: Vec<String> = wishlist.iter().map(|d| d.domain_name()).collect();
 
   for domain in result {
-    if wishlisted_domain_names.contains(&domain.domain_name()) {
+    if wishlisted_domain_names.contains(&domain.domain_name().to_string()) {
       domain.selected = true
     }
   }

@@ -26,7 +26,7 @@ pub fn get_wishlist() -> Vec<Domain> {
   // Transform content into a vector of Domain
   match serde_json::from_str(&contents) {
     Ok(result) => result,
-    Err(error) => { panic!("{}", error) }
+    Err(_error) => vec![]
   }
 }
 

@@ -2,7 +2,7 @@ use serde::{Serialize,Deserialize};
 
 /// Selectable
 pub trait Selectable {
-  fn is_selected(&self) -> &str;
+  fn is_selected(&self) -> String;
   fn toggle_status(&mut self);
 }
 
@@ -21,11 +21,11 @@ pub struct Extension {
 }
 
 impl Selectable for Extension {
-  fn is_selected(&self) -> &str {
+  fn is_selected(&self) -> String {
     if self.selected {
-      "Selected"
+      String::from("Selected")
     } else {
-      "Not selected"
+      String::from("Not selected")
     }
   }
 
@@ -46,26 +46,26 @@ pub struct Domain {
 }
 
 impl Domain {
-  pub(crate) fn is_available(&self) -> &str {
+  pub(crate) fn is_available(&self) -> String {
     if self.status == "True" {
-      "Available"
+      String::from("Available")
     } else {
-      "Not available"
+      String::from("Not available")
     }
   }
 
-  /// Complete domain domain name (e.g. "example.com")
+  // Complete domain domain name (e.g. "example.com")
   pub(crate) fn domain_name(&self) -> String {
-    format!("{}.{}", self.domain, self.tld).to_string()
+    format!("{}.{}", self.domain, self.tld)
   }
 }
 
 impl Selectable for Domain {
-  fn is_selected(&self) -> &str {
+  fn is_selected(&self) -> String {
     if self.selected {
-      "Wishlisted"
+      String::from("Wishlisted")
     } else {
-      "Not wishlisted"
+      String::from("Not wishlisted")
     }
   }
 
