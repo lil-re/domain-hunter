@@ -11,6 +11,10 @@ use crate::models::{Domain, Selectable};
 use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
 use crate::wishlist_file::{add_to_wishlist, remove_from_wishlist};
 
+const INFO_TEXTS: [&str; 1] = [
+  "(Esc) quit | (↑) move up | (↓) move down | (w) Add/Remove from wishlist",
+];
+
 pub fn display_domains(data: Vec<Domain>) -> Result<()> {
   color_eyre::install()?;
   let terminal = ratatui::init();
@@ -43,7 +47,7 @@ impl BaseTable<Domain> {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
             KeyCode::Char('j') | KeyCode::Down => self.next_row(),
             KeyCode::Char('k') | KeyCode::Up => self.previous_row(),
-            KeyCode::Char('a') => self.update_row_status(),
+            KeyCode::Char('w') => self.update_row_status(),
             _ => {}
           }
         }
@@ -58,7 +62,7 @@ impl BaseTable<Domain> {
     self.set_color();
     self.render_table(frame, rects[0]);
     self.render_scrollbar(frame, rects[0]);
-    self.render_footer(frame, rects[1]);
+    self.render_footer(frame, rects[1], INFO_TEXTS);
   }
 
   fn render_table(&mut self, frame: &mut Frame, area: Rect) {

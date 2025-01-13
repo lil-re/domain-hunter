@@ -12,9 +12,6 @@ use ratatui::style::palette::tailwind;
 /// Constants
 const MAIN_COLOR: tailwind::Palette = tailwind::BLUE;
 const ITEM_HEIGHT: usize = 3;
-const INFO_TEXT: [&str; 1] = [
-  "(Esc) quit | (↑) move up | (↓) move down | (a) Add to selected extensions",
-];
 
 /// Table colors
 pub struct TableColors {
@@ -87,7 +84,7 @@ pub trait TableBehavior {
   fn previous_row(&mut self);
   fn set_color(&mut self);
   fn render_scrollbar(&mut self, frame: &mut Frame, area: Rect);
-  fn render_footer(&self, frame: &mut Frame, area: Rect);
+  fn render_footer(&self, frame: &mut Frame, area: Rect, info_texts: [&str; 1]);
 }
 
 /// BaseTable
@@ -166,8 +163,8 @@ impl<T> TableBehavior for BaseTable<T> {
     );
   }
 
-  fn render_footer(&self, frame: &mut Frame, area: Rect) {
-    let info_footer = Paragraph::new(Text::from_iter(INFO_TEXT))
+  fn render_footer(&self, frame: &mut Frame, area: Rect, info_texts: [&str; 1]) {
+    let info_footer = Paragraph::new(Text::from_iter(info_texts))
         .style(
           Style::new()
               .fg(self.colors.row_fg)
