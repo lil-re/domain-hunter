@@ -12,7 +12,7 @@ use crate::models::{Extension, Selectable};
 use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
 
 const INFO_TEXTS: [&str; 1] = [
-  "(Esc) quit | (↑) move up | (↓) move down | (s) Add/Remove from selected extensions",
+  "(Esc) quit | (↑) move up | (↓) move down | (s) Select or unselect extension",
 ];
 
 pub fn display_extensions(data: Vec<Extension>) -> Result<()> {

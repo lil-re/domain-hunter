@@ -22,11 +22,11 @@ struct Args {
     #[arg(short, long, default_value = "")]
     search: String,
 
-    /// Manage domain extensions
+    /// Show and manage domain extensions
     #[arg(short, long, default_value_t = false)]
     extensions: bool,
 
-    /// Manage favorite domains
+    /// Show and manage favorite domains
     #[arg(short, long, default_value_t = false)]
     wishlist: bool,
 }
