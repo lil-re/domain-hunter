@@ -1,18 +1,12 @@
-mod search_command;
-mod extensions_command;
-mod wishlist_command;
-mod domains_table;
-mod extensions_table;
-mod tables;
 mod models;
-mod wishlist_file;
-mod extensions_file;
 mod default_extensions;
+mod commands;
+mod files;
+mod tables;
 
+use commands::{extensions_command, search_command, wishlist_command};
+use files::wishlist_file;
 use clap::Parser;
-use crate::extensions_command::handle_extensions;
-use crate::wishlist_command::handle_wishlist;
-use crate::search_command::search_domain_names;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -36,10 +30,10 @@ async fn main() {
     let args = Args::parse();
 
     if args.search.len() > 0 {
-        search_domain_names(args.search).await;
+        search_command::search_domain_names(args.search).await;
     } else if args.extensions {
-        handle_extensions();
+        extensions_command::handle_extensions();
     } else if args.wishlist {
-        handle_wishlist();
+        wishlist_command::handle_wishlist();
     }
 }

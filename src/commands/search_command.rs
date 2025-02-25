@@ -1,7 +1,7 @@
 use reqwest::Url;
 use regex::Regex;
-use crate::domains_table::display_domains;
-use crate::extensions_file::get_extensions;
+use crate::tables::domains_table::display_domains;
+use crate::files::extensions_file::get_extensions;
 use crate::models::{Domain, Extension};
 use crate::wishlist_file::get_wishlist;
 

@@ -7,15 +7,15 @@ use ratatui::{
   widgets::{HighlightSpacing, Table},
   DefaultTerminal, Frame,
 };
-use crate::extensions_file::save_extensions;
-use crate::models::{Extension, Selectable};
-use crate::tables::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
+use crate::models::{Domain, Selectable};
+use crate::tables::base_table::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
+use crate::wishlist_file::{add_to_wishlist, remove_from_wishlist};
 
 const INFO_TEXTS: [&str; 1] = [
-  "(Esc) quit | (↑) move up | (↓) move down | (s) Select or unselect extension",
+  "(Esc) quit | (↑) move up | (↓) move down | (w) Add/Remove from wishlist",
 ];
 
-pub fn display_extensions(data: Vec<Extension>) -> Result<()> {
+pub fn display_domains(data: Vec<Domain>) -> Result<()> {
   color_eyre::install()?;
   let terminal = ratatui::init();
   let app_result = BaseTable::new(data).run(terminal);
@@ -23,12 +23,17 @@ pub fn display_extensions(data: Vec<Extension>) -> Result<()> {
   app_result
 }
 
-impl BaseTable<Extension> {
-  /// Select or unselect an extension
+impl BaseTable<Domain> {
+  /// Add or remove a domain from the wishlist
   pub fn update_row_status(&mut self) {
-    if let Some(selected) = self.state.selected() {
-      self.items[selected].toggle_status();
-      save_extensions(&self.items)
+    if let Some(index) = self.state.selected() {
+      self.items[index].toggle_status();
+
+      if self.items[index].selected {
+        add_to_wishlist(self.items[index].clone())
+      } else {
+        remove_from_wishlist(self.items[index].clone())
+      }
     }
   }
 
@@ -42,7 +47,7 @@ impl BaseTable<Extension> {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
             KeyCode::Char('j') | KeyCode::Down => self.next_row(),
             KeyCode::Char('k') | KeyCode::Up => self.previous_row(),
-            KeyCode::Char('s') => self.update_row_status(),
+            KeyCode::Char('w') => self.update_row_status(),
             _ => {}
           }
         }
@@ -61,22 +66,22 @@ impl BaseTable<Extension> {
   }
 
   fn render_table(&mut self, frame: &mut Frame, area: Rect) {
-    let header_labels = vec!["TLD", "Name", "Selected"];
+    let header_labels = vec!["Domain", "Status", "Wishlist"];
     let header_style = get_header_style(&self.colors);
     let header = get_table_headers(header_labels, header_style);
 
     let selected_row_style = get_selected_row_style(&self.colors);
 
     let rows = self.items.iter().enumerate().map(|(i, data)| {
-      let row_values = vec![data.tld.clone(), data.name.clone(), data.is_selected()];
+      let row_values = vec![data.domain_name(), data.is_available(), data.is_selected()];
       let row_style = get_row_style(i, &self.colors);
       get_table_row(row_values, row_style)
     });
 
     let widths = vec![
-      Constraint::Min(10),
       Constraint::Min(20),
-      Constraint::Min(20)
+      Constraint::Min(20),
+      Constraint::Min(20),
     ];
 
     let t = Table::new(rows, widths)

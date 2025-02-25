@@ -1,5 +1,5 @@
 use crate::wishlist_file::get_wishlist;
-use crate::domains_table::display_domains;
+use crate::tables::domains_table::display_domains;
 use crate::models::Domain;
 
 pub fn handle_wishlist() {
