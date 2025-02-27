@@ -1,7 +1,7 @@
 use reqwest::Url;
 use regex::Regex;
+use crate::database::extensions_api::find_selected_extensions;
 use crate::tables::domains_table::display_domains;
-use crate::files::extensions_file::get_extensions;
 use crate::models::{Domain, Extension};
 use crate::wishlist_file::get_wishlist;
 
@@ -17,15 +17,14 @@ pub async fn search_domain_names(domain: String) {
 
 /// Retrieve the extensions selected by the user
 pub fn get_selected_extensions() -> String {
-  let default_extensions: Vec<Extension> = get_extensions();
-  let selected_extensions: String = default_extensions
+  let selected_extensions: Vec<Extension> = find_selected_extensions();
+  let selected_extensions_tlds: String = selected_extensions
       .iter()
-      .filter(|e| e.selected)
       .map(|e| format!("\"{}\"", e.tld))
       .collect::<Vec<_>>()
       .join(",");
 
-  format!("[{}]", selected_extensions)
+  format!("[{}]", selected_extensions_tlds)
 }
 
 /// Generate the URL to fetch domain names

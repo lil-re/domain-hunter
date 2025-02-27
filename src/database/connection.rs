@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref DB_CONNECTION: Mutex<Connection> = Mutex::new(
-        match Connection::open_in_memory() {
+        match Connection::open("my_database.db") {
             Ok(connection) => connection,
             Err(_) => panic!("Failed to establish connection with database")
         }
