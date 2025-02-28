@@ -1,9 +1,9 @@
 use std::sync::MutexGuard;
-use rusqlite::Connection;
+use rusqlite::{Connection, Statement};
 use crate::database::connection::DB_CONNECTION;
 use crate::models::Extension;
 
-pub fn create_extension(conn: &MutexGuard<Connection>, extension: &Extension) -> Option<bool> {
+pub fn create_extension(conn: &MutexGuard<Connection>, extension: &Extension) -> Option<()> {
     let response = conn.execute(
         "INSERT INTO extension (tld, name, selected) VALUES (?1, ?2, ?3)",
         (&extension.tld, &extension.name, &extension.selected),
@@ -11,10 +11,28 @@ pub fn create_extension(conn: &MutexGuard<Connection>, extension: &Extension) ->
         .map_err(|e| format!("Failed to insert extension: {}", e));
 
     match response {
-        Ok(_) => Some(true),
+        Ok(_) => Some(()),
         Err(error) => {
             println!("{}", error);
-            Some(false)
+            None
+        }
+    }
+}
+
+pub fn update_extension(extension: &Extension) -> Option<()> {
+    let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
+
+    let response = conn.execute(
+        "UPDATE extension SET selected = ?1 WHERE tld = ?2",
+        (&extension.selected, &extension.tld),
+    )
+        .map_err(|e| format!("Failed to update extension: {}", e));
+
+    match response {
+        Ok(_) => Some(()),
+        Err(error) => {
+            println!("{}", error);
+            None
         }
     }
 }
@@ -27,23 +45,7 @@ pub fn find_all_extensions() -> Vec<Extension> {
         Err(error) => panic!("{}", error)
     };
 
-    let extensions_iter = stmt.query_map([], |row| {
-        Ok(Extension {
-            tld: row.get(1)?,
-            name: row.get(2)?,
-            selected: row.get(3)?,
-        })
-    });
-
-    let extensions_result = match extensions_iter {
-        Ok(result) => result.collect::<Result<Vec<Extension>, rusqlite::Error>>(),
-        Err(_) => Ok(vec![])
-    };
-
-    match extensions_result {
-        Ok(result) => result,
-        Err(_) => vec![]
-    }
+    handle_extensions_result(&mut stmt)
 }
 
 pub fn find_selected_extensions() -> Vec<Extension> {
@@ -54,6 +56,10 @@ pub fn find_selected_extensions() -> Vec<Extension> {
         Err(error) => panic!("{}", error)
     };
 
+    handle_extensions_result(&mut stmt)
+}
+
+fn handle_extensions_result(stmt: &mut Statement) -> Vec<Extension> {
     let extensions_iter = stmt.query_map([], |row| {
         Ok(Extension {
             tld: row.get(1)?,
@@ -70,23 +76,5 @@ pub fn find_selected_extensions() -> Vec<Extension> {
     match extensions_result {
         Ok(result) => result,
         Err(_) => vec![]
-    }
-}
-
-pub fn update_extension(extension: &Extension) -> Option<bool> {
-    let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
-
-    let response = conn.execute(
-        "UPDATE extension SET selected = ?1 WHERE tld = ?2",
-        (&extension.selected, &extension.tld),
-    )
-        .map_err(|e| format!("Failed to update extension: {}", e));
-
-    match response {
-        Ok(_) => Some(true),
-        Err(error) => {
-            println!("{}", error);
-            Some(false)
-        }
     }
 }

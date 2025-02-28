@@ -9,7 +9,7 @@ use ratatui::{
 };
 use crate::models::{Domain, Selectable};
 use crate::tables::base_table::{get_header_style, get_row_style, get_selected_row_style, get_table_headers, get_table_row, BaseTable, TableBehavior};
-use crate::wishlist_file::{add_to_wishlist, remove_from_wishlist};
+use crate::database::wishlist_api::{add_to_wishlist, remove_from_wishlist};
 
 const INFO_TEXTS: [&str; 1] = [
   "(Esc) quit | (↑) move up | (↓) move down | (w) Add/Remove from wishlist",
@@ -30,9 +30,9 @@ impl BaseTable<Domain> {
       self.items[index].toggle_status();
 
       if self.items[index].selected {
-        add_to_wishlist(self.items[index].clone())
+        add_to_wishlist(&self.items[index]);
       } else {
-        remove_from_wishlist(self.items[index].clone())
+        remove_from_wishlist(&self.items[index]);
       }
     }
   }

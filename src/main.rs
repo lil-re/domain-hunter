@@ -1,12 +1,10 @@
 mod models;
-mod default_extensions;
 mod commands;
 mod files;
 mod tables;
 mod database;
 
 use commands::{extensions_command, search_command, wishlist_command, init_command};
-use files::wishlist_file;
 use clap::Parser;
 use database::{connection};
 

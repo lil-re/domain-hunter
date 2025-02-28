@@ -1,16 +1,16 @@
 use reqwest::Url;
 use regex::Regex;
 use crate::database::extensions_api::find_selected_extensions;
+use crate::database::wishlist_api::find_wishlist;
 use crate::tables::domains_table::display_domains;
 use crate::models::{Domain, Extension};
-use crate::wishlist_file::get_wishlist;
 
 pub async fn search_domain_names(domain: String) {
   let extensions: String = get_selected_extensions();
   let url: Url = get_url(domain, extensions);
   let data: String = search_domains(url).await;
   let mut domains: Vec<Domain> = parse_data(data);
-  let wishlist : Vec<Domain> = get_wishlist();
+  let wishlist : Vec<Domain> = find_wishlist();
   set_wishlisted_domain(&mut domains, wishlist);
   display_domains(domains).expect("An error occurred while displaying results");
 }
