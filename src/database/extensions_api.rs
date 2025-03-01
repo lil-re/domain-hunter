@@ -3,6 +3,7 @@ use rusqlite::{Connection, Statement};
 use crate::database::connection::DB_CONNECTION;
 use crate::models::Extension;
 
+/// Create a domain name extension
 pub fn create_extension(conn: &MutexGuard<Connection>, extension: &Extension) -> Option<()> {
     let response = conn.execute(
         "INSERT INTO extension (tld, name, selected) VALUES (?1, ?2, ?3)",
@@ -19,6 +20,7 @@ pub fn create_extension(conn: &MutexGuard<Connection>, extension: &Extension) ->
     }
 }
 
+/// Update a domain name extension
 pub fn update_extension(extension: &Extension) -> Option<()> {
     let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
 
@@ -37,6 +39,7 @@ pub fn update_extension(extension: &Extension) -> Option<()> {
     }
 }
 
+/// Get all domain extensions
 pub fn find_all_extensions() -> Vec<Extension> {
     let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
 
@@ -48,6 +51,7 @@ pub fn find_all_extensions() -> Vec<Extension> {
     handle_extensions_result(&mut stmt)
 }
 
+/// Get domain extensions selected by user
 pub fn find_selected_extensions() -> Vec<Extension> {
     let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
 
@@ -59,6 +63,7 @@ pub fn find_selected_extensions() -> Vec<Extension> {
     handle_extensions_result(&mut stmt)
 }
 
+/// Trigger a SQL query to get extensions
 fn handle_extensions_result(stmt: &mut Statement) -> Vec<Extension> {
     let extensions_iter = stmt.query_map([], |row| {
         Ok(Extension {

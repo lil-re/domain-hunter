@@ -1,6 +1,7 @@
 use crate::database::connection::DB_CONNECTION;
 use crate::models::Domain;
 
+/// Add a domain to the wishlist
 pub fn add_to_wishlist(domain: &Domain) -> Option<()> {
     let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
 
@@ -19,6 +20,7 @@ pub fn add_to_wishlist(domain: &Domain) -> Option<()> {
     }
 }
 
+/// Remove a domain from the wishlist
 pub fn remove_from_wishlist(domain: &Domain) -> Option<()> {
     let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
 
@@ -37,6 +39,7 @@ pub fn remove_from_wishlist(domain: &Domain) -> Option<()> {
     }
 }
 
+/// Get all domains in the wishlist
 pub fn find_wishlist() -> Vec<Domain> {
     let conn = DB_CONNECTION.lock().expect("Failed to lock the database connection");
 

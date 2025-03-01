@@ -15,7 +15,7 @@ pub async fn search_domain_names(domain: String) {
   display_domains(domains).expect("An error occurred while displaying results");
 }
 
-/// Retrieve the extensions selected by the user
+/// Get the extensions selected by the user
 pub fn get_selected_extensions() -> String {
   let selected_extensions: Vec<Extension> = find_selected_extensions();
   let selected_extensions_tlds: String = selected_extensions

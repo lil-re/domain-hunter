@@ -14,6 +14,7 @@ pub fn run_migrations() -> Result<()> {
     Ok(())
 }
 
+/// Create the `wishlist` table
 fn create_wishlist_table(conn: &MutexGuard<Connection>) -> Result<()> {
     let wishlist_result = conn.execute("
         CREATE TABLE IF NOT EXISTS wishlist (
@@ -39,6 +40,7 @@ fn create_wishlist_table(conn: &MutexGuard<Connection>) -> Result<()> {
     Ok(())
 }
 
+/// Create the `extension` table
 fn create_extension_table(conn: &MutexGuard<Connection>) -> Result<()> {
     let extension_result = conn.execute("
         CREATE TABLE IF NOT EXISTS extension (
@@ -63,6 +65,7 @@ fn create_extension_table(conn: &MutexGuard<Connection>) -> Result<()> {
     Ok(())
 }
 
+/// Create default domain name extensions table
 fn create_default_extensions(conn: &MutexGuard<Connection>) -> Result<()> {
     let extensions = get_default_extensions();
 
@@ -75,6 +78,7 @@ fn create_default_extensions(conn: &MutexGuard<Connection>) -> Result<()> {
     Ok(())
 }
 
+/// Get the list of default domain name extensions
 pub fn get_default_extensions() -> Vec<Extension> {
     // Transform content into a vector of Extension
     match serde_json::from_str(DEFAULT_EXTENSIONS) {

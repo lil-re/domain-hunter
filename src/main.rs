@@ -8,7 +8,6 @@ use commands::{extensions_command, search_command, wishlist_command, init_comman
 use clap::Parser;
 use database::{connection};
 
-/// Simple program to greet a person
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {

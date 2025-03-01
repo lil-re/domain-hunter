@@ -7,18 +7,26 @@ A command line interface (CLI) tool to search for available domain names and sav
 Usage :
 
 ```bash
-domainhunter [options]
+domain-hunter [options]
 ```
 
 Options :
 
-```bash
+```
+-i, --init <DOMAIN_NAME>    Initializes local database
 -s, --search <DOMAIN_NAME>  Search for available domain names
 -e, --extensions            Show and manage domain name extensions
 -w, --wishlist              Show and manage your wishlist of domain names
 -h, --help                  Print help message
 -V, --version               Print version information
 ```
+
+## Initializing 
+
+To be able to use Domain Hunter, you have to initialize its database by running `domain-hunter --init`. This command creates
+a SQLite database with 2 tables : 
+ - `extension`: Store a list of top level domain such as `.com`, `.net`, `.org`...
+ - `wishlist`: Store the user's domain names wishlist.
 
 ## Search
 
@@ -29,7 +37,7 @@ To search for domain names, use the `--search <DOMAIN_NAME>` option. You don't n
 Example:
 
 ```bash
-domainhunter --search example
+domain-hunter --search example
 ```
 
 This will check for domain names like `example.com`, `example.net`, and `example.org`.
@@ -37,11 +45,12 @@ This will check for domain names like `example.com`, `example.net`, and `example
 ## Extensions
 
 By default, Domain Hunter checks for `.com`, `.net`, and `.org` extensions. To customize the domain extensions, use the 
-`--extensions` option. This will create or update the `extensions.json` file with your selected extensions.  
-This command will show the available extensions and allow you to manage your preferences.
+`domain-hunter --extensions` command. This command shows a list of extensions and allow you to manage your preferences 
+by selecting or unselecting the top level domains used during a domain name search. Your extensions preferences are 
+stored in the `extension` table in the local database.
 
 ## Wishlist
 
-You can add available domain names to your wishlist during the search process. The wishlist is stored in a 
-`wishlist.json` file.  
-To view your wishlist, use the `--wishlist` option. From here, you can also remove domain names from your wishlist.
+You can add domain names to your wishlist during the search process. The wishlist is stored the `wishlist` table in the 
+local database. To view your wishlist, use the `domain-hunter --wishlist` command. From here, you can also remove domain 
+names from your wishlist.
